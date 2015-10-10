@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+	<script src="/welder_assets/js/welder_widgets.js"></script>
+		<!-- Welder widgets is the set of UI components and utility functions. -->
+
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+		<!-- Bootstrap is a popular CSS framework.  Welder widgets depend on this framework -->
+
+	<link rel="stylesheet" href="/welder_assets/css/welder_widgets.css">
+		<!-- This is the stylesheet for welder widgets. Needed if you intend to have any widgets -->
+
+	<script type="text/javascript">
+		var $ = jQuery = require("jquery");
+			// Jquery is the popular JS toolkit for DOM manipulation.
+			// It is highly advised you keep this.
+
+		var h = require("hyperscript");
+			// Hyperscript is a JS toolkit for creating DOM elements.
+			// It makes it easy to create HTML from JS. (See h() calls below.)
+			// You may choose to not use this library in which case you would
+			// code your HTML in tradional style.
+
+		var welder = require("welder");
+			// Welder is a set of helper functions for welder-related activities
+			// such as posting runs.
+
+		require("bootstrap");
+			// Bootstrap js is the extension for bootstrap to handle modal dialog
+			// boxes and many other situations. It is used by welder widgets.
+
+
+		$(document).ready( function() {
+			var appName = "Microbiome_Pipeline";
+			var appDescription = "";
+
+			function formInputs() {
+				return h('div.form-group',
+					h('label','Select End 1 Fastq file'),
+					h('div.form-group', h('input.welder-file-picker',{name:'fastq_end_1'})),
+					h('label','Select End 2 Fastq file'),
+					h('div.form-group', h('input.welder-file-picker',{name:'fastq_end_2'})),
+					h('label','How many processors per node?'),
+					h('div.form-group', h('select.form-control',{name:'num_cores'}, h('option',1), h('option',2), h('option',4), h('option',8), h('option',16), h('option',32)))
+				);
+			}
+
+			function workload(params) {
+				// For documentaion about the workload description block,
+				// see https://github.com/appsoma/welder/blob/master/docs/json/post_api_v1_projects_runs.md
+				return {
+					"name": "microbiome_pipeline",
+					"app_folder_name": "microbiome_pipeline",
+					"params": params,
+					"tasks": [
+						{
+							"name": "task_1",
+							"command": "python ./code/microbiome_pipeline/pipeline.py",
+							"container_image": "jordanualberta/microbiome",
+							"inputs": {
+								"fastq_end_1": "$PARAMS/fastq_end_1",
+								"fastq_end_2": "$PARAMS/fastq_end_2"
+							},
+							"mounts": {
+								"datasets" : "$DATASETS/:rw"	
+							},
+							
+							"requirements": {
+								"cpus": 1,
+								"mem": 512,
+								"disk": 512
+							}
+						}
+					]
+				};
+			}
+
+			// In the following we are using the HTML generating library called "Hyperscript"
+			// See https://github.com/dominictarr/hyperscript
+			// But of course nothing stops you from using plain-old HTML if you want.
+			$("body").append(
+				h('.container',
+					h('h1', appName),
+					h('h4', appDescription),
+					h('.container',
+						h('form#main-form', { action:'', role:'form' },
+							h('fieldset',
+								formInputs(),
+								h('button.btn.btn-primary',{type:'submit'},"Submit")
+							)
+						)
+					)
+				)
+			);
+
+			welder.initWidgetsFromClasses();
+				// This call creates Welder widgets from class names
+				// See https://github.com/appsoma/welder/blob/master/README.md
+				// for details.
+
+			welder.widgets.poweredBy();
+				// This adds the "Appsoma" logo in the upper right corner.
+
+			welder.handleRunSimilar( "#main-form" );
+				// If you press the "Run Similar" link on the runs page
+				// you are asking for the current app to populate its form
+				// based on the parameters of a previous run. 
+				// This is the function that handles that population.
+
+			$("#main-form").submit( function() {
+				// When the form is submitted, we will executre this...
+				
+				$(this).find('fieldset').prop('disabled',true);
+					// Disables the form so we can't modify the form after submission
+
+				var params = welder.formToObject( this );
+					// Converts the form to a JSON parameter block
+
+				welder.ajax.postRun( workload(params) );
+					// POST the run to Welder. See the workload function
+					// above for the details of the workload description.
+
+				return false;
+					// Tell the submit not to take default action
+			});
+		});
+	</script>
+</head>
+<body>
+</body>
+</html>
