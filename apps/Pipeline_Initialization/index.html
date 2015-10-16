@@ -15,13 +15,16 @@
 		$(document).ready( function() {
 			$("body").append(
 				h('.container',
-					h('h1','Your new app'),
-					h('h4','A description of you new app'),
+					h('h1','Microbiome Pipeline Initialization'),
+					h('h4','Synchronizes the local file system with the S3 reference database'),
 					h('.container',
 						h('form#main-form', { action:'', role:'form' },
 							h('fieldset',
-								h('div.form-group',
-									h('label','Some file')
+								h('div.checkbox',
+									h('label',
+										h('input',{type:'checkbox',name:'abbreviated_database'}),
+										'Use abbreviated database'
+									)
 								),
 								h('button.btn.btn-primary',{type:'submit'},"Submit")
 							)
@@ -37,6 +40,20 @@
 			$("#main-form").submit( function() {
 				$(this).find('fieldset').prop('disabled',true);
 				var params = welder.formToObject( this );
+				
+				var command = "";
+				if( params.abbreviated_database ) {
+					command += "mkdir -p datasets/microbiome_db/human-microbiome";
+					command += ";mkdir -p datasets/microbiome_db/trim_db";
+					command += ";mkdir -p datasets/microbiome_db/taxonomy";
+					command += ";aws --no-sign-request s3 sync s3://microbiome-pipeline-db/human-microbiome datasets/microbiome_db/human-microbiome --region us-east-1";
+					command += ";aws --no-sign-request s3 sync s3://microbiome-pipeline-db/trim_db datasets/microbiome_db/trim_db --region us-east-1";
+					command += ";aws --no-sign-request s3 sync s3://microbiome-pipeline-db/taxonomy datasets/microbiome_db/taxonomy --region us-east-1";
+				}
+				else {
+					command += "mkdir -p datasets/microbiome_db";
+					command += ";aws --no-sign-request s3 sync s3://microbiome-pipeline-db datasets/microbiome_db --region us-east-1";
+				}
 
 				welder.ajax.postRun({
 					"name": "Pipeline_Initialization",
@@ -44,8 +61,8 @@
 					"params": params,
 					"tasks": [
 						{
-							"name": "task_name",
-							"command": "mkdir -p datasets/microbiome_db; aws --no-sign-request s3 sync s3://microbiome-pipeline-db/ datasets/microbiome_db --region us-east-1",
+							"name": "synchronize",
+							"command": command,
 							"container_image": "jordanualberta/awscli:aws",
 							"mounts": {
 								"datasets": "$DATASETS/:rw"

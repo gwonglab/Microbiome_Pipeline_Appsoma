@@ -32,14 +32,14 @@
 
 
 		$(document).ready( function() {
-			var appName = "Microbiome_Pipeline";
-			var appDescription = "";
+			var appName = "Microbiome Pipeline";
+			var appDescription = "Analyzes microbiome from Illumina reads. Be sure to run Pipeline_Initialization app before this one.";
 
 			function formInputs() {
 				return h('div.form-group',
-					h('label','Select End 1 Fastq file'),
+					h('label','End 1 Fastq file'),
 					h('div.form-group', h('input.welder-file-picker',{name:'fastq_end_1'})),
-					h('label','Select End 2 Fastq file'),
+					h('label','End 2 Fastq file'),
 					h('div.form-group', h('input.welder-file-picker',{name:'fastq_end_2'})),
 					h('label','How many processors per node?'),
 					h('div.form-group', h('select.form-control',{name:'num_cores'}, h('option',1), h('option',2), h('option',4), h('option',8), h('option',16), h('option',32)))
@@ -55,7 +55,7 @@
 					"params": params,
 					"tasks": [
 						{
-							"name": "task_1",
+							"name": "setup",
 							"command": "python ./code/microbiome_pipeline/pipeline.py",
 							"container_image": "jordanualberta/microbiome",
 							"inputs": {
